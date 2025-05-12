@@ -5,6 +5,7 @@
 
 #include <GLFW/glfw3.h>
 #include <vector>
+#include <cassert>
 
 
 static VkDebugUtilsMessengerEXT debugMessenger;
@@ -57,20 +58,32 @@ std::vector<const char*> getRequiredExtensions() {
 
 
 
-Context::~Context() {
-	DestroyDebugUtilsMessengerEXT(mInstance, debugMessenger, nullptr);
+Context& Context::operator=(Context&& other) noexcept {
+	if (this != &other) {
+		if (mInstance != VK_NULL_HANDLE) {
+			DestroyDebugUtilsMessengerEXT(mInstance, debugMessenger, nullptr);
+			vkDestroyInstance(mInstance, nullptr);
+		}
 
-	vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+		mInstance = other.mInstance;
+		mSurface = other.mSurface;
+
+		other.mInstance= VK_NULL_HANDLE;
+		other.mSurface = VK_NULL_HANDLE;
+	}
+	return *this;
+}
+
+Context::~Context() {
+	if(mInstance == VK_NULL_HANDLE)
+		return;
+
+	DestroyDebugUtilsMessengerEXT(mInstance, debugMessenger, nullptr);
 	vkDestroyInstance(mInstance, nullptr);
 }
 
 VkSurfaceKHR Context::createSurface(const Window& window) {
 	return mSurface = ResourceFactory::createSurface(mInstance, window.native());
-}
-
-std::vector<VkPhysicalDevice> Context::tellGPUs() const {
-	// might cache
-	return ResourceFactory::tellGPUs(mInstance);
 }
 
 
@@ -87,7 +100,7 @@ ContextBuilder::ContextBuilder() {
 	appInfo.apiVersion = VK_API_VERSION_1_0;
 }
 
-Context* ContextBuilder::create() {
+Context ContextBuilder::create() {
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
@@ -116,7 +129,7 @@ Context* ContextBuilder::create() {
 
 
     VkInstance context = ResourceFactory::createContext(createInfo);
-    return new Context(context);
+    return Context(context);
 }
 
 ContextBuilder & ContextBuilder::applicationName(const char * name) {

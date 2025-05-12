@@ -4,16 +4,19 @@
 #include <vector>
 #include <optional>
 #include <stdexcept>
-#include <set>
 #include <functional>
+#include <memory>
+#include <iostream>
 
 #include "Common.h"
+#include "Fence.h"
+#include "Semaphore.h"
+#include "CommandPool.h"
 #include "CommandBuffer.h"
+#include "Window.h"
 
-class Context;
 
 class GPU {
-		friend class GPUSelector;
 
 	public:
 
@@ -24,7 +27,31 @@ class GPU {
 			VkQueue transfer = VK_NULL_HANDLE;
 		};
 
+		GPU(VkPhysicalDevice physicalDevice = VK_NULL_HANDLE, VkDevice device = VK_NULL_HANDLE, QueueFamilyIndices indices = {}):
+			mPhysicalDevice(physicalDevice), mDevice(device), mIndices(indices) { }
+		GPU(const GPU&) = delete;
+		GPU(GPU&& other) noexcept: 
+			mDevice(other.mDevice), mPhysicalDevice(other.mPhysicalDevice), mIndices(std::move(other.mIndices)) {}
+		GPU& operator=(const GPU&) = delete;
+		GPU& operator=(GPU&& other) noexcept {
+			if (this != &other) {
+				mDevice = other.mDevice;
+				mPhysicalDevice = other.mPhysicalDevice;
+				mIndices = std::move(other.mIndices);
+
+				other.mDevice = VK_NULL_HANDLE;
+				other.mPhysicalDevice = VK_NULL_HANDLE;
+			}
+			return *this;
+		}
 		~GPU() {
+			if (mPhysicalDevice == VK_NULL_HANDLE)
+				return;
+			
+			if(mDevice == VK_NULL_HANDLE)
+				return;
+			
+
 			vkDestroyDevice(mDevice, nullptr);
 		}
 
@@ -32,30 +59,18 @@ class GPU {
 			vkDeviceWaitIdle(mDevice); 
 		}
 
-		VkSurfaceCapabilitiesKHR surfaceCapabilitiesFor(VkSurfaceKHR surface) const;
-		std::vector<VkPresentModeKHR> modesFor(VkSurfaceKHR surface) const;
-		std::vector<VkSurfaceFormatKHR> formatsFor(VkSurfaceKHR surface) const;
-		bool supportsPresentation(VkSurfaceKHR surface) const;
+		VkSurfaceCapabilitiesKHR surfaceCapabilitiesFor(const Window& window) const;
+		std::vector<VkPresentModeKHR> modesFor(const Window& window) const;
+		std::vector<VkSurfaceFormatKHR> formatsFor(const Window& window) const;
+		bool supportsPresentation(const Window& window) const;
 
 		QueueFamilyIndices queueFamilies() const { return mIndices; }
 		operator VkDevice() const { return mDevice; }
 		operator VkPhysicalDevice() const { return mPhysicalDevice; }
 
-		CommandBuffer* createCommandQueue(const VkCommandPool& pool) const {
-			VkCommandBuffer commands;
-
-			VkCommandBufferAllocateInfo allocInfo{};
-			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			allocInfo.commandPool = pool;
-			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			allocInfo.commandBufferCount = 1;
-
-			if (vkAllocateCommandBuffers(mDevice, &allocInfo, &commands) != VK_SUCCESS)
-				throw std::runtime_error("failed to allocate command buffers!");
-
-			return new CommandBuffer(commands);
-		}
-		VkCommandPool createCommandPool() const {
+		PrimaryCommandBuffer createPrimaryCommandBuffer(const CommandPool& pool) const;
+		SecondaryCommandBuffer createSecondaryCommandBuffer(const CommandPool& pool) const;
+		CommandPool createCommandPool() const {
 			VkCommandPool pool;
 
 			VkCommandPoolCreateInfo poolInfo{};
@@ -66,106 +81,48 @@ class GPU {
 			if (vkCreateCommandPool(mDevice, &poolInfo, nullptr, &pool) != VK_SUCCESS)
 				throw std::runtime_error("failed to create command pool!");
 
-			return pool;
+			return CommandPool(pool, mDevice);
 		}
 
-		VkQueue graphicsQueue() const {
+		VkQueue createGraphicsQueue() const {
 			VkQueue graphics;
 			vkGetDeviceQueue(mDevice, mIndices.graphicsFamily.value(), 0, &graphics);
 			return graphics;
 		}
-		VkQueue presentQueue() const {
+		VkQueue createPresentQueue() const {
 			VkQueue present;
 			vkGetDeviceQueue(mDevice, mIndices.presentFamily.value(), 0, &present);
 			return present;
 		}
 
-		VkSemaphore semaphore(const VkSemaphoreCreateInfo& info) const {
+		Semaphore createSemaphore() const {
 			VkSemaphore semaphore;
+
+			VkSemaphoreCreateInfo info{};
+			info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
 			if (vkCreateSemaphore(mDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
 				std::runtime_error("Cannot create semaphore");
 
-			return semaphore;
+			return Semaphore(semaphore, mDevice);
 		}
-		VkFence fence(const VkFenceCreateInfo& info) const {
+		Fence createFence(bool signaled = true) {
 			VkFence fence;
-			if (vkCreateFence(mDevice, &info, nullptr, &fence) != VK_SUCCESS)
-				std::runtime_error("Cannot create fence");
 
-			return fence;
+		    VkFenceCreateInfo info = {};
+			info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			info.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+
+			if (vkCreateFence(mDevice, &info, nullptr, &fence) != VK_SUCCESS)
+				throw std::runtime_error("failed to create mFence!");
+
+			return Fence(fence, mDevice);
 		}
 
 	private:
 
-		GPU(VkPhysicalDevice physicalDevice, VkDevice device, QueueFamilyIndices indices):
-			mPhysicalDevice(std::move(physicalDevice)), mDevice(std::move(device)), mIndices(std::move(indices)) {
-
-		}
-
-
 		VkDevice mDevice;
 		VkPhysicalDevice mPhysicalDevice;
 		QueueFamilyIndices mIndices;
-
-};
-
-class GPUSelector {
-
-	struct Device {
-		std::string name;
-		int score;
-		VkPhysicalDevice device;
-		QueueFamilyIndices indices;
-	};
-
-public:
-
-	GPUSelector(Handle<Context> resourceFactory);
-
-   	const GPUSelector& tell();
-	GPU* select(int i) const;
-   
-	GPUSelector& extensions(std::vector<const char*> extensions) {
-		mExtensions = std::move(extensions);
-		return *this;
-	}
-	GPUSelector& features(std::vector<const char*> features) {
-		mFeatures = std::move(features);
-		return *this;
-	}
-	GPUSelector& minimumScore(int score) {
-		mMinimumScore = score;
-		return *this;
-	}
-	GPUSelector& preferredDeviceType(VkPhysicalDeviceType type) {
-		mPreferredType = type;
-		return *this;
-	}
-	GPUSelector& requiredQueues(QueueType queue) {
-		mRequiredQueues |= queue;
-		return *this;
-	}
-   
-
-private:
-
-	int rateDevice(VkPhysicalDevice device) const;
-	bool checkDeviceExtensionSupport(VkPhysicalDevice device) const;
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) const;
-	 
-
-private:
-	
-	Handle<Context> pContext;
-
-	std::vector<const char*> mExtensions;
-	std::vector<const char*> mFeatures;
-	std::vector<Device> mDevices;
-
-	QueueType mRequiredQueues;
-
-	int mMinimumScore = 1;
-	VkPhysicalDeviceType mPreferredType = VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-
 
 };

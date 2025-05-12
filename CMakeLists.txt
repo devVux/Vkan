@@ -39,22 +39,34 @@ add_executable(Vkan
 	"RenderPass.cpp"
 	"Window.cpp"
 	"GraphicsPipeline.h" 
-	"GraphicsPipeline.cpp" 
+	"Builders/GraphicsPipelineBuilder.cpp" 
 	"Framebuffer.h" 
-	"Framebuffer.cpp" 
+	"Builders/FramebufferBuilder.cpp" 
 	"Fence.h" 
 	"Fence.cpp" 
 	"CommandBuffer.cpp" 
-	"CommandQueue.h" 
-	"CommandQueue.cpp" 
-)
+	#"CommandQueue.h" 
+	#"CommandQueue.cpp" 
+ "FrameContext.h" "Renderer.h" "RenderSystem.h" "Semaphore.h" "CommandPool.h" "Builders/FramebufferBuilder.h"
 
 
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(Vkan PRIVATE -fsanitize=address)
-    target_link_options(Vkan PRIVATE -fsanitize=address)
+
+
+
+
+
+ "Builders/GPUSelector.h" "Builders/GPUSelector.cpp"   "Builders/RenderPassBuilder.h" "Builders/GraphicsPipelineBuilder.h" "Builders/SwapChainBuilder.h" "Builders/SwapChainBuilder.cpp")
+
+ if (MSVC)
+    add_compile_options(/fsanitize=address)
+    add_link_options(/fsanitize=address)
 endif()
 
+
+target_include_directories(Vkan PRIVATE 
+"${CMAKE_SOURCE_DIR}/"
+"${CMAKE_SOURCE_DIR}/Builders/"
+)
 target_link_libraries(Vkan PRIVATE Vulkan::Vulkan glfw)
 target_include_directories(Vkan PRIVATE ${glm_SOURCE_DIR})

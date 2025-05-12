@@ -1,18 +1,28 @@
 #include "Window.h"
 
-#include <GLFW/glfw3.h>
+#include "ResourceFactory.h"
 
-Window::Window(std::string title, Size size) {
+#include <GLFW/glfw3.h>
+#include <cassert>
+#include <stdexcept>
+
+Window::Window(VkInstance context, std::string title, Size size): mContext(context) {
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-
     pWindow = glfwCreateWindow(size.width, size.height, title.c_str(), nullptr, nullptr);
+	if (!pWindow)
+        throw std::runtime_error("Failed to create GLFW window");
 
+	mSurface = ResourceFactory::createSurface(mContext, pWindow);
 }
 
 Window::~Window() {
+	assert(mContext != VK_NULL_HANDLE && "Context should be valid when destroying the window");
+	assert(mSurface != VK_NULL_HANDLE && "Surface should be valid when destroying the window");
+	
+	vkDestroySurfaceKHR(mContext, mSurface, nullptr);
     glfwDestroyWindow(pWindow);
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <cassert>
 
 template<typename T, typename Deleter = std::nullptr_t>
 class VulkanHandle {

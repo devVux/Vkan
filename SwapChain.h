@@ -1,30 +1,57 @@
 #pragma once
 
-#include "Context.h"
 #include "GPU.h"
+#include "Window.h"
 
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <algorithm>
 #include <optional>
-#include <GLFW/glfw3.h>
-#include "Window.h"
-#include "Framebuffer.h"
-#include "Fence.h"
-#include "CommandBuffer.h"
-#include <memory>
 
 class RenderPass;
 
 class SwapChain {
-    friend class SwapChainBuilder;
 
 public:
+	
+    SwapChain(VkSwapchainKHR swapChain = VK_NULL_HANDLE, 
+		const std::vector<VkImage>& images = {},
+		const std::vector<VkImageView>& imageViews = {},
+		VkQueue presentQueue = VK_NULL_HANDLE, 
+		VkDevice device = VK_NULL_HANDLE);
+	SwapChain(const SwapChain&) = delete;
+	SwapChain(SwapChain&& other) noexcept: mSwapChain(other.mSwapChain), mImages(std::move(other.mImages)), mDevice(other.mDevice),
+		mImageViews(std::move(other.mImageViews)), mPresentQueue(other.mPresentQueue) {
+		other.mSwapChain = VK_NULL_HANDLE;
+		other.mDevice = VK_NULL_HANDLE;
+		other.mPresentQueue = VK_NULL_HANDLE;
+	}
+	SwapChain& operator=(const SwapChain&) = delete;
+	SwapChain& operator=(SwapChain&& other) noexcept {
+		if (this != &other) {
+			for (auto imageView : mImageViews)
+				if (imageView != VK_NULL_HANDLE)
+					vkDestroyImageView(mDevice, imageView, nullptr);
+
+			if (mSwapChain != VK_NULL_HANDLE)
+				vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
+
+			mSwapChain = other.mSwapChain;
+			mDevice = other.mDevice;
+			mPresentQueue = other.mPresentQueue;
+			mImages = std::move(other.mImages);
+			mImageViews = std::move(other.mImageViews);
+
+			other.mSwapChain = VK_NULL_HANDLE;
+			other.mDevice = VK_NULL_HANDLE;
+			other.mPresentQueue = VK_NULL_HANDLE;
+		}
+		return *this;
+	}
     ~SwapChain();
 
-	void sync() const;
-	uint32_t acquireNextImage() const;
-	void present(const uint32_t index, const CommandBuffer& commands) const;
+	uint32_t acquireNextImage(const VkSemaphore& semaphoreToSignal) const;
+	void present(const uint32_t index, const VkSemaphore& semaphore) const;
 
 	const auto& imageViews() const { return mImageViews; }
 	const std::size_t imageViewCount() const { return mImageViews.size(); }
@@ -32,48 +59,15 @@ public:
 	VkImageView& operator[](const std::size_t i) { return mImageViews[i]; }
 	const VkImageView& operator[](const std::size_t i) const { return mImageViews[i]; }
 
-
-private:
-    SwapChain(VkSwapchainKHR swapChain, VkFormat imageFormat, VkExtent2D extent, Handle<GPU> gpu);
+	VkExtent2D extent() const { return { 800, 600 }; }
 
 private:
 
     VkSwapchainKHR mSwapChain;
-    VkFormat mImageFormat;
     std::vector<VkImage> mImages;
     std::vector<VkImageView> mImageViews;
-    Handle<GPU> pGPU;
+    VkDevice mDevice;
 	
-	VkExtent2D mExtent;
+    VkQueue mPresentQueue;
 
-	VkFence mInFlightFence;
-	VkSemaphore mSemaphore;
-
-	uint32_t mImageIndex;
-
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-	
-    VkSemaphore mImageAvailableSemaphore;
-    VkSemaphore mRenderFinishedSemaphore;
-};
-
-class SwapChainBuilder {
-
-public:
-    SwapChainBuilder(Handle<GPU> gpu): pGPU(gpu) {}
-
-    SwapChain* create(VkSurfaceKHR surface);
-
-	SwapChainBuilder& extent(VkExtent2D extent) {
-		mExtent = extent;
-		return *this;
-	}
-
-
-private:
-
-	Handle<GPU> pGPU;
-
-    VkExtent2D mExtent;
 };

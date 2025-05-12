@@ -1,7 +1,6 @@
-#include "GraphicsPipeline.h"
+#include "GraphicsPipelineBuilder.h"
 
-#include "RenderPass.h"
-#include "GPU.h"
+#include "ResourceFactory.h"
 
 #include <vector>
 #include <fstream>
@@ -39,12 +38,12 @@ VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code
 }
 
 
-GraphicsPipeline* GraphicsPipelineBuilder::create() const {
+GraphicsPipeline GraphicsPipelineBuilder::create(const RenderPass& renderpass, const GPU& gpu) const {
     auto vertShaderCode = readFile("vert.spv");
     auto fragShaderCode = readFile("frag.spv");
 
-    VkShaderModule vertShaderModule = createShaderModule(*pGPU, vertShaderCode);
-    VkShaderModule fragShaderModule = createShaderModule(*pGPU, fragShaderCode);
+    VkShaderModule vertShaderModule = createShaderModule(gpu, vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(gpu, fragShaderCode);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -119,7 +118,7 @@ GraphicsPipeline* GraphicsPipelineBuilder::create() const {
     pipelineLayoutInfo.setLayoutCount = 0;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
 
-    auto pipelineLayout = ResourceFactory::createPipelineLayout(*pGPU, pipelineLayoutInfo);
+    auto pipelineLayout = ResourceFactory::createPipelineLayout(gpu, pipelineLayoutInfo);
 
 
 
@@ -136,14 +135,14 @@ GraphicsPipeline* GraphicsPipelineBuilder::create() const {
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = *pRenderPass;
+    pipelineInfo.renderPass = renderpass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-	auto graphicsPipeline = ResourceFactory::createGraphicsPipeline(*pGPU, pipelineInfo);
+	auto graphicsPipeline = ResourceFactory::createGraphicsPipeline(gpu, pipelineInfo);
 
-    vkDestroyShaderModule(*pGPU, fragShaderModule, nullptr);
-    vkDestroyShaderModule(*pGPU, vertShaderModule, nullptr);
+    vkDestroyShaderModule(gpu, fragShaderModule, nullptr);
+    vkDestroyShaderModule(gpu, vertShaderModule, nullptr);
 
-	return new GraphicsPipeline(graphicsPipeline, pipelineLayout, pGPU);
+	return GraphicsPipeline(graphicsPipeline, pipelineLayout, gpu);
 }

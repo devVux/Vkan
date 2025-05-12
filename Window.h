@@ -1,9 +1,10 @@
 #pragma once
 
 #include <string>
-#include <cstdint>
 
 #include "Common.h"
+#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 
 struct GLFWwindow;
 
@@ -11,7 +12,7 @@ class Window {
 
 public:
 
-	Window(std::string title, Size size = { 800, 600 });
+	Window(VkInstance context, std::string title, Size size = { 800, 600 });
 	~Window();
 
 	void update() const;
@@ -20,11 +21,13 @@ public:
 	Size size() const;
 
 	GLFWwindow* native() const;
-
+	operator VkSurfaceKHR() const { return mSurface; }
 
 private:
 
-	GLFWwindow* pWindow;
+	GLFWwindow* pWindow { nullptr };
+	VkSurfaceKHR mSurface { VK_NULL_HANDLE };
+	VkInstance mContext;
 
 };
 

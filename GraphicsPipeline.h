@@ -3,54 +3,55 @@
 #include <vulkan/vulkan.h>
 
 #include "Common.h"
-#include "CommandBuffer.h"
-#include "GPU.h"
-
-class GPU;
-class RenderPass;
 
 class GraphicsPipeline {
 
-	friend class GraphicsPipelineBuilder;
-
 public:
 	
-	~GraphicsPipeline() {
-		vkDestroyPipeline(*pGPU, mPipeline, nullptr);
-        vkDestroyPipelineLayout(*pGPU, mLayout, nullptr);
+	GraphicsPipeline(VkPipeline pipeline = VK_NULL_HANDLE, VkPipelineLayout layout = VK_NULL_HANDLE, VkDevice device = VK_NULL_HANDLE): 
+		mPipeline(pipeline), mLayout(layout), mDevice(device) { }
+	GraphicsPipeline(const GraphicsPipeline&) = delete;
+	GraphicsPipeline(GraphicsPipeline&& other) noexcept: mPipeline(other.mPipeline), mLayout(other.mLayout), mDevice(other.mDevice) {
+		other.mPipeline = VK_NULL_HANDLE;
+		other.mLayout = VK_NULL_HANDLE;
+		other.mDevice = VK_NULL_HANDLE;
 	}
+	GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
+	GraphicsPipeline& operator=(GraphicsPipeline&& other) noexcept {
+		if (this != &other) {
+			if (mPipeline != VK_NULL_HANDLE)
+				vkDestroyPipeline(mDevice, mPipeline, nullptr);
+			if (mLayout != VK_NULL_HANDLE)
+				vkDestroyPipelineLayout(mDevice, mLayout, nullptr);
 
-	void bind(const CommandBuffer& commands) const {
-		vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
+			mPipeline = other.mPipeline;
+			mLayout = other.mLayout;
+			mDevice = other.mDevice;
+
+			other.mPipeline = VK_NULL_HANDLE;
+			other.mLayout = VK_NULL_HANDLE;
+			other.mDevice = VK_NULL_HANDLE;
+		}
+		return *this;
+	}
+	~GraphicsPipeline() {
+		if (mPipeline == VK_NULL_HANDLE)
+			return;
+		
+		if (mLayout == VK_NULL_HANDLE)
+			return;
+		
+
+		vkDestroyPipeline(mDevice, mPipeline, nullptr);
+        vkDestroyPipelineLayout(mDevice, mLayout, nullptr);
 	}
 
 	operator VkPipeline() const { return mPipeline; }
 
-private:
-
-	GraphicsPipeline(VkPipeline pipeline, VkPipelineLayout layout, Handle<GPU> gpu): 
-		mPipeline(pipeline), mLayout(layout), pGPU(gpu) { }
-	
 
 	VkPipeline mPipeline;
 	VkPipelineLayout mLayout;
-	Handle<GPU> pGPU;
-};
-
-class GraphicsPipelineBuilder {
-
-public:
-
-	GraphicsPipelineBuilder(Handle<RenderPass> renderPass, Handle<GPU> gpu): 
-		pGPU(gpu), pRenderPass(renderPass) { }
-
-	GraphicsPipeline* create() const;
-
-	
-
-private:
-
-	Handle<RenderPass> pRenderPass;
-	Handle<GPU> pGPU;
+	VkDevice mDevice;
 
 };
+

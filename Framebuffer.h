@@ -2,55 +2,50 @@
 
 #include <vulkan/vulkan.h>
 
-#include <vector>
-
 #include "Common.h"
 
-class SwapChain;
-class RenderPass;
-class GPU;
+#include <iostream>
 
 class Framebuffer {
-	friend class FramebufferBuilder;
 public:
 
-    operator VkFramebuffer() const { return mFramebuffer; }
-    
-private:
+    Framebuffer(VkFramebuffer framebuffer = VK_NULL_HANDLE, VkDevice device = VK_NULL_HANDLE): mFramebuffer(framebuffer), mDevice(device) { }
+	Framebuffer(const Framebuffer&) = delete;
+	Framebuffer(Framebuffer&& other) noexcept: mFramebuffer(other.mFramebuffer), mDevice(other.mDevice) {
+		other.mFramebuffer = VK_NULL_HANDLE;
+		other.mDevice = VK_NULL_HANDLE;
+	}
+	Framebuffer& operator=(const Framebuffer&) = delete;
+	Framebuffer& operator=(Framebuffer&& other) noexcept {
+		if (this != &other) {
+			if (mFramebuffer != VK_NULL_HANDLE)
+                vkDestroyFramebuffer(mDevice, mFramebuffer, nullptr);
 
-    Framebuffer(VkFramebuffer framebuffer): 
-		mFramebuffer(std::move(framebuffer)) {
+			mFramebuffer = other.mFramebuffer;
+			mDevice = other.mDevice;
+
+			other.mFramebuffer = VK_NULL_HANDLE;
+			other.mDevice = VK_NULL_HANDLE;
 		}
+		return *this;
+	}
+	~Framebuffer() {
+		if (mDevice == VK_NULL_HANDLE)
+			return;
+		
+		if (mFramebuffer == VK_NULL_HANDLE)
+			return;
+		
+
+		vkDestroyFramebuffer(mDevice, mFramebuffer, nullptr);
+	}
+
+
+	operator VkFramebuffer() const { return mFramebuffer; }
 
 private:
+
     VkFramebuffer mFramebuffer;
-};
-
-class FramebufferBuilder {
-
-public:
-
-    FramebufferBuilder(Handle<GPU> gpu): pGPU(gpu) {}
-
-	
-    std::vector<Framebuffer*> create(const RenderPass& renderPass) const;
-
-    FramebufferBuilder& extent(VkExtent2D extent) {
-        mExtent = extent;
-        return *this;
-    }
-
-    FramebufferBuilder& imageViews(const std::vector<VkImageView>& views) {
-        mImageViews = views;
-        return *this;
-    }
-
-
-
-private:
-    
-	Handle<GPU> pGPU;
-    VkExtent2D mExtent;
-	std::vector<VkImageView> mImageViews;
+	VkDevice mDevice;
 
 };

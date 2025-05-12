@@ -22,4 +22,10 @@ struct ResourceFactory {
    static VkPipeline createGraphicsPipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& info);  
    static VkPipelineLayout createPipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo& info);  
 
+   static VkCommandBuffer createCommandBuffer(VkDevice device, const VkCommandBufferAllocateInfo& info);
+
+   static VkImageView createImageView(VkDevice device, const VkImageViewCreateInfo& info);
+
+   static VkFramebuffer createFramebuffer(VkDevice device, const VkFramebufferCreateInfo& info);
+
 };

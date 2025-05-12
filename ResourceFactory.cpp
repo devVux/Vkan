@@ -59,6 +59,33 @@ VkPipelineLayout ResourceFactory::createPipelineLayout(VkDevice device, const Vk
 	return pipelineLayout;
 }
 
+VkCommandBuffer ResourceFactory::createCommandBuffer(VkDevice device, const VkCommandBufferAllocateInfo & info) {
+	VkCommandBuffer commands;
+	
+	if (vkAllocateCommandBuffers(device, &info, &commands) != VK_SUCCESS)
+		throw std::runtime_error("failed to create command buffers!");
+
+	return commands;
+}
+
+VkImageView ResourceFactory::createImageView(VkDevice device, const VkImageViewCreateInfo& info) {
+	VkImageView image{};
+
+	if (vkCreateImageView(device, &info, nullptr, &image) != VK_SUCCESS)
+		throw std::runtime_error("failed to create image views!");
+
+	return image;
+}
+
+VkFramebuffer ResourceFactory::createFramebuffer(VkDevice device, const VkFramebufferCreateInfo & info) {
+	VkFramebuffer framebuffer{};
+	
+	if (vkCreateFramebuffer(device, &info, nullptr, &framebuffer) != VK_SUCCESS)
+		throw std::runtime_error("failed to create framebuffer");
+
+	return framebuffer;
+}
+
 VkPipeline ResourceFactory::createGraphicsPipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& info) {
     VkPipeline graphicsPipeline { VK_NULL_HANDLE };
 
