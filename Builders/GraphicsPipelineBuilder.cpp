@@ -6,7 +6,7 @@
 #include <fstream>
 
 static std::vector<char> readFile(const std::string& filename) {
-    std::ifstream file("F:\\dev\\Vkan\\" + filename, std::ios::ate | std::ios::binary);
+	std::ifstream file(std::filesystem::current_path() / filename, std::ios::ate | std::ios::binary);
 
     if (!file.is_open()) {
         throw std::runtime_error("failed to open file!");

@@ -18,6 +18,7 @@
 #include "Fence.h"
 #include "Semaphore.h"
 #include "CommandBuffer.h"
+#include "Renderer.h"
 
 
 class RenderSystem {
@@ -74,10 +75,13 @@ public:
 		
 		mCommands.reset();
 		mCommands.begin();
-		mCommands.beginRenderPass(mRenderpass, mFramebuffer[mImageIndex]);
+		mCommands.beginRenderPass(mRenderpass, mFramebuffer[mImageIndex], mSwapchain.extent());
 
 		context.begin(mRenderpass, mFramebuffer[mImageIndex], mRenderpass.subpassIndex());
 		context.bindGraphicsPipeline(mPipeline);
+
+		RenderCommands::viewport(context, 0, 0, mSwapchain.extent().width, mSwapchain.extent().height);
+		RenderCommands::scissor(context, 0, 0, mSwapchain.extent().width, mSwapchain.extent().height);
 	}
 
 	void end(FrameContext& context) {

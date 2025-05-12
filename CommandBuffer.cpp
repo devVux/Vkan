@@ -20,13 +20,13 @@ void PrimaryCommandBuffer::submit(VkQueue queue, std::vector<VkSemaphore> waitSe
         throw std::runtime_error("failed to submit command buffer!");
 }
 
-void PrimaryCommandBuffer::beginRenderPass(const RenderPass& renderpass, const VkFramebuffer& framebuffer) {
+void PrimaryCommandBuffer::beginRenderPass(const RenderPass& renderpass, const VkFramebuffer& framebuffer, VkExtent2D extent) {
 	VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = renderpass;
     renderPassInfo.framebuffer = framebuffer;
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = {800, 600};
+    renderPassInfo.renderArea.extent = extent;
 
 	VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     renderPassInfo.clearValueCount = 1;

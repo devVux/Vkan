@@ -51,6 +51,9 @@ std::vector<const char*> getRequiredExtensions() {
 
     if (1) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		extensions.push_back("VK_MVK_macos_surface");
+		extensions.push_back("VK_KHR_portability_enumeration");
+		extensions.push_back("VK_KHR_get_physical_device_properties2");
     }
 
     return extensions;
@@ -103,6 +106,7 @@ ContextBuilder::ContextBuilder() {
 Context ContextBuilder::create() {
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     createInfo.pApplicationInfo = &appInfo;
         
 

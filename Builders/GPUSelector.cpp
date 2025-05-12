@@ -9,7 +9,10 @@
 
 GPUSelector::GPUSelector(VkInstance context): mContext(context) {
 	// Initialize with reasonable defaults
-	mExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	mExtensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		"VK_KHR_portability_subset"  // <-- Required on macOS with MoltenVK
+	};
 }
 
 GPU GPUSelector::select(int i) const {

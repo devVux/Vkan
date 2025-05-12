@@ -7,8 +7,9 @@
 #include "ResourceFactory.h"
 
 
-SwapChain::SwapChain(VkSwapchainKHR swapChain, const std::vector<VkImage>& images, const std::vector<VkImageView>& imageViews, VkQueue presentQueue, VkDevice device):
+SwapChain::SwapChain(VkSwapchainKHR swapChain, const std::vector<VkImage>& images, const std::vector<VkImageView>& imageViews, VkQueue presentQueue, VkExtent2D extent, VkDevice device):
 	mSwapChain(swapChain), 
+	mExtent(extent),
 	mImages(images),
 	mImageViews(imageViews),
 	mDevice(device),

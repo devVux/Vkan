@@ -29,8 +29,6 @@ int main() {
 		system.begin(context);
 		{
 
-			RenderCommands::viewport(context, 0, 0, 800, 600);
-			RenderCommands::scissor(context, 0, 0, 800, 600);
 			RenderCommands::draw(context, 3, 1, 0, 0);
 
 		}

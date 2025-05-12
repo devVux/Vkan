@@ -34,7 +34,7 @@ public:
     void submit(VkQueue queue, std::vector<VkSemaphore> waitSemaphores, std::vector<VkSemaphore> signalSemaphores, const Fence& fence) const;
 		
 	void begin();
-	void beginRenderPass(const RenderPass& renderpass, const VkFramebuffer& framebuffer);
+	void beginRenderPass(const RenderPass& renderpass, const VkFramebuffer& framebuffer, VkExtent2D extent);
 
     void reset();
 

@@ -1,14 +1,24 @@
 #include "SwapChainBuilder.h"
 
 #include <array>
+#include <cstdint>
 #include "ResourceFactory.h"
 
+#include <GLFW/glfw3.h>
+
+#include <iostream>
 
 VkExtent2D chooseSwapExtent(const Window& window, const VkSurfaceCapabilitiesKHR& capabilities) {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
         return capabilities.currentExtent;
 
-	VkExtent2D actualExtent = { window.size().width, window.size().height };
+	int width, height;
+	glfwGetFramebufferSize(window.native(), &width, &height);
+
+	VkExtent2D actualExtent(
+		static_cast<uint32_t>(width),
+		static_cast<uint32_t>(height)
+	);
 
     actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
     actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
@@ -142,5 +152,5 @@ SwapChain SwapChainBuilder::create(const Window& window, const GPU& gpu) const {
 	}	
 
 
-    return SwapChain(swapChain, images, imageViews, gpu.createPresentQueue(), gpu);
+    return SwapChain(swapChain, images, imageViews, gpu.createPresentQueue(), extent, gpu);
 }
